@@ -875,7 +875,7 @@ const firebaseConfig = {
 
 // Email do administrador — único com acesso total
 // Substitua pelo seu email real do Google/Firebase
-const ADMIN_EMAIL = "oliveira.leonardo.2000@gmail.com";
+const ADMIN_EMAIL = "COLE_SEU_EMAIL_AQUI";
 
 // URL fixa do Google Apps Script (opcional — deixe '' para configurar pelo painel)
 const SHEETS_URL_FIXA = '';
@@ -992,6 +992,27 @@ window.fazerRegistro = async function() {
 
 window.fazerLogout = async function() {
   await signOut(auth);
+  // Reseta botão e campos do login
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginSenha').value = '';
+  document.getElementById('loginErr').classList.remove('show');
+  // Reseta botão e campos do registro
+  const btnR = document.getElementById('btnRegister');
+  btnR.disabled = false;
+  btnR.textContent = 'Criar conta';
+  document.getElementById('regNome').value  = '';
+  document.getElementById('regEmail').value = '';
+  document.getElementById('regSenha').value = '';
+  document.getElementById('registerErr').classList.remove('show');
+  // Volta para aba login
+  switchAuthTab('login');
+  // Limpa estado
+  fichas = [];
+  ultimaFicha = null;
+  radiosVal = {};
 };
 
 function traduzirErroAuth(code) {
@@ -1263,7 +1284,10 @@ window.renderHistorico = function() {
     </div>`; return;
   }
 
-  list.innerHTML = lista.map((f,i) => `
+  // Guarda referência das fichas renderizadas para o botão imprimir acessar pelo ID
+  window._fichasRenderizadas = lista;
+
+  list.innerHTML = lista.map((f, i) => `
     <div class="hist-item">
       <div class="hist-header">
         <div>
@@ -1283,7 +1307,7 @@ window.renderHistorico = function() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
           Reenviar Sheets
         </button>`:''}
-        <button class="hist-btn" onclick="imprimirFicha(fichas[${i}])">
+        <button class="hist-btn" onclick="window.imprimirFicha(window._fichasRenderizadas[${i}])">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir / PDF
         </button>
