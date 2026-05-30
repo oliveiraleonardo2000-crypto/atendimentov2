@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ficha de Atendimento — Impulsionando Advogados</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:         #1A4A8A;
+      --blue-hover:   #163e75;
+      --blue-light:   #EBF1FB;
+      --blue-mid:     #4A7AC0;
+      --green:        #2E8A57;
+      --green-bg:     #F0F8F3;
+      --green-border: #C3DCC7;
+      --green-text:   #1A3A28;
+      --green-mid:    #5A9E6E;
+      --red:          #C0392B;
+      --red-bg:       #FEF0EE;
+      --amber:        #B45309;
+      --amber-bg:     #FFFBEB;
+      --amber-border: #FCD34D;
+      --bg:           #F5F6F8;
+      --surface:      #FFFFFF;
+      --border:       #E4E7EC;
+      --border-med:   #D0D5DD;
+      --text:         #101828;
+      --text-2:       #475467;
+      --text-3:       #98A2B3;
+      --shadow-sm:    0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
+      --shadow:       0 4px 8px -2px rgba(16,24,40,.08), 0 2px 4px -2px rgba(16,24,40,.04);
+      --radius-sm:    6px;
+      --radius:       10px;
+      --radius-lg:    14px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Loading screen ── */
+    .loading-screen {
+      position: fixed; inset: 0;
+      background: var(--blue);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      z-index: 999; transition: opacity .4s;
+    }
+    .loading-screen.hide { opacity: 0; pointer-events: none; }
+    .loading-logo {
+      width: 56px; height: 56px; background: rgba(255,255,255,.15);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+    .loading-logo svg { width: 28px; height: 28px; }
+    .loading-name { font-size: 18px; font-weight: 700; color: #fff; }
+    .loading-sub  { font-size: 13px; color: rgba(255,255,255,.6); }
+    .loading-spinner {
+      width: 28px; height: 28px; border: 3px solid rgba(255,255,255,.2);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .8s linear infinite; margin-top: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Auth screen ── */
+    .auth-screen {
+      display: none; min-height: 100vh;
+      align-items: center; justify-content: center;
+      background: var(--bg); padding: 20px;
+    }
+    .auth-screen.show { display: flex; }
+    .auth-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px;
+      width: 100%; max-width: 420px;
+      box-shadow: var(--shadow);
+      animation: popIn .3s ease both;
+    }
+    @keyframes popIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .auth-logo {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+    }
+    .auth-logo-box {
+      width: 36px; height: 36px; background: var(--blue);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+    }
+    .auth-logo-box svg { width: 18px; height: 18px; }
+    .auth-logo-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .auth-logo-sub  { font-size: 11px; color: var(--text-3); }
+    .auth-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .auth-sub   { font-size: 13px; color: var(--text-2); margin-bottom: 24px; line-height: 1.5; }
+    .auth-tabs  { display: flex; gap: 4px; background: var(--bg); border-radius: 8px; padding: 3px; margin-bottom: 20px; }
+    .auth-tab {
+      flex: 1; padding: 7px; border-radius: 6px; border: none;
+      font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
+      cursor: pointer; background: transparent; color: var(--text-3); transition: all .15s;
+    }
+    .auth-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+    .auth-fields { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .auth-field  { display: flex; flex-direction: column; gap: 5px; }
+    .auth-label  { font-size: 12px; font-weight: 500; color: var(--text-2); }
+    .auth-input  {
+      width: 100%; border: 1px solid var(--border-med); border-radius: var(--radius);
+      padding: 10px 12px; font-size: 14px; font-family: 'Inter', sans-serif;
+      color: var(--text); outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .auth-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,74,138,.1); }
+    .auth-input.error { border-color: var(--red); }
+    .auth-err {
+      font-size: 12px; color: var(--red); background: var(--red-bg);
+      border: 1px solid #F5C6C2; border-radius: var(--radius-sm);
+      padding: 8px 12px; display: none;
+    }
+    .auth-err.show { display: block; }
+    .auth-btn {
+      width: 100%; padding: 12px; background: var(--blue); color: #fff;
+      border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: background .15s;
+      margin-top: 4px;
+    }
+    .auth-btn:hover { background: var(--blue-hover); }
+    .auth-btn:disabled { background: var(--border-med); cursor: not-allowed; }
+    .auth-footer { text-align: center; font-size: 12px; color: var(--text-3); margin-top: 16px; }
+
+    /* ── App screen ── */
+    .app-screen { display: none; padding-bottom: 60px; }
+    .app-screen.show { display: block; }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      height: 56px; padding: 0 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .logo {
+      width: 32px; height: 32px; background: var(--blue);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .logo svg { width: 17px; height: 17px; }
+    .app-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; }
+    .app-sub  { font-size: 11px; color: var(--text-3); }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .user-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 99px;
+      background: var(--blue-light); font-size: 12px; font-weight: 500; color: var(--blue);
+      max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .user-badge svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-med); transition: background .3s; }
+    .status-dot.online { background: var(--green); }
+    .btn-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .15s; color: var(--text-3);
+    }
+    .btn-icon:hover { border-color: var(--blue-mid); color: var(--blue); }
+    .btn-icon.active { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+    .btn-icon svg { width: 15px; height: 15px; }
+
+    /* ── Limit banner ── */
+    .limit-banner {
+      background: var(--amber-bg); border-bottom: 1px solid var(--amber-border);
+      padding: 10px 16px; font-size: 12px; color: var(--amber);
+      display: none; align-items: center; gap: 8px;
+    }
+    .limit-banner.show { display: flex; }
+    .limit-banner svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ── Page ── */
+    .page { max-width: 680px; margin: 0 auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 4px;
+      display: flex; gap: 2px; box-shadow: var(--shadow-sm);
+    }
+    .tab {
+      flex: 1; padding: 9px 12px; border-radius: 9px;
+      font-size: 13px; font-weight: 500; color: var(--text-3);
+      cursor: pointer; transition: all .15s; text-align: center;
+      border: none; background: transparent; font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .tab svg { width: 14px; height: 14px; }
+    .tab:hover { color: var(--text-2); background: var(--bg); }
+    .tab.active { background: var(--blue); color: #fff; box-shadow: 0 1px 3px rgba(26,74,138,.2); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);
+    }
+    .card-head {
+      font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--text-3); margin-bottom: 16px; display: flex; align-items: center; gap: 6px;
+    }
+    .card-head svg { width: 13px; height: 13px; }
+
+    /* ── Form ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .span2 { grid-column: span 2; }
+    @media(max-width:520px){ .form-grid { grid-template-columns: 1fr; } .span2 { grid-column: span 1; } }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+    .req { color: var(--red); margin-left: 2px; }
+
+    input[type="text"], input[type="date"], input[type="email"],
+    input[type="tel"], input[type="password"], select, textarea {
+      width: 100%; border: 1px solid var(--border-med); border-radius: var(--radius);
+      padding: 9px 12px; font-size: 14px; font-family: 'Inter', sans-serif;
+      color: var(--text); background: var(--surface); outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,74,138,.1);
+    }
+    input.error, select.error { border-color: var(--red) !important; }
+    input::placeholder, textarea::placeholder { color: var(--text-3); font-size: 13px; }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2398A2B3' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+    }
+    textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+
+    .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .radio-opt {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 12px; border-radius: var(--radius);
+      border: 1px solid var(--border-med); background: var(--surface);
+      font-size: 13px; color: var(--text-2); cursor: pointer;
+      transition: all .15s; user-select: none;
+    }
+    .radio-opt.selected { background: var(--blue-light); border-color: var(--blue-mid); color: var(--blue); font-weight: 500; }
+    .radio-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 1.5px solid var(--border-med);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .radio-opt.selected .radio-dot { border-color: var(--blue); background: var(--blue); }
+    .radio-dot::after { content:''; width:5px; height:5px; border-radius:50%; background:#fff; display:none; }
+    .radio-opt.selected .radio-dot::after { display: block; }
+
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ── Botões ── */
+    .actions { display: flex; gap: 10px; }
+    .btn-primary {
+      flex: 1; padding: 13px; background: var(--blue); color: #fff;
+      border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background .15s, transform .1s; box-shadow: 0 1px 2px rgba(26,74,138,.25);
+    }
+    .btn-primary:hover  { background: var(--blue-hover); }
+    .btn-primary:active { transform: scale(.99); }
+    .btn-primary:disabled { background: var(--border-med); cursor: not-allowed; transform: none; }
+    .btn-primary svg { width: 16px; height: 16px; }
+    .btn-secondary {
+      padding: 13px 16px; background: var(--surface); color: var(--text-2);
+      border: 1px solid var(--border-med); border-radius: var(--radius);
+      font-size: 14px; font-weight: 500; font-family: 'Inter', sans-serif;
+      cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s;
+    }
+    .btn-secondary:hover { border-color: var(--border); background: var(--bg); }
+    .btn-secondary svg { width: 15px; height: 15px; }
+
+    .err-msg {
+      display: none; font-size: 13px; color: var(--red);
+      background: var(--red-bg); border: 1px solid #F5C6C2;
+      border-radius: var(--radius); padding: 10px 14px;
+      align-items: center; gap: 8px;
+    }
+    .err-msg.visible { display: flex; }
+    .err-msg svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    /* ── Histórico ── */
+    .hist-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+    }
+    .count-badge {
+      font-size: 12px; color: var(--text-3);
+      background: var(--bg); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 99px;
+    }
+    .admin-actions { display: flex; gap: 8px; }
+    .export-btn {
+      padding: 7px 14px; border-radius: var(--radius);
+      font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif;
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+      border: 1px solid var(--border-med); background: var(--surface); color: var(--text-2);
+      transition: all .15s;
+    }
+    .export-btn:hover { border-color: var(--green); color: var(--green); }
+    .export-btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .export-btn svg { width: 13px; height: 13px; }
+
+    /* Filtro admin */
+    .filter-bar {
+      display: none; align-items: center; gap: 8px;
+      padding: 10px 14px; background: var(--blue-light);
+      border: 1px solid #B8D0F0; border-radius: var(--radius);
+      margin-bottom: 12px; font-size: 12px; color: var(--blue-mid);
+    }
+    .filter-bar.show { display: flex; }
+    .filter-bar svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .filter-bar select {
+      border: 1px solid #B8D0F0; border-radius: var(--radius-sm);
+      padding: 4px 28px 4px 8px; font-size: 12px; background: #fff;
+      color: var(--blue); flex: 1; max-width: 220px;
+    }
+
+    .hist-empty {
+      text-align: center; padding: 40px 20px; color: var(--text-3);
+    }
+    .hist-empty svg { width: 40px; height: 40px; margin-bottom: 12px; stroke: var(--border-med); }
+    .hist-empty p { font-size: 14px; }
+    .hist-empty span { font-size: 12px; display: block; margin-top: 4px; }
+
+    .hist-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+      box-shadow: var(--shadow-sm); margin-bottom: 10px;
+    }
+    .hist-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .hist-nome { font-size: 15px; font-weight: 600; color: var(--text); }
+    .hist-data { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .hist-responsavel {
+      font-size: 11px; color: var(--blue-mid); margin-top: 2px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .hist-responsavel svg { width: 11px; height: 11px; }
+    .hist-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .hist-tag {
+      font-size: 11px; padding: 2px 8px; border-radius: 99px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--text-2);
+    }
+    .hist-actions {
+      display: flex; gap: 8px; padding-top: 12px;
+      border-top: 1px solid var(--border); margin-top: 12px;
+    }
+    .hist-btn {
+      flex: 1; padding: 7px; border-radius: var(--radius-sm);
+      font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+      border: 1px solid var(--border-med); background: var(--surface); color: var(--text-2);
+      transition: all .15s;
+    }
+    .hist-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .hist-btn svg { width: 13px; height: 13px; }
+
+    /* ── Plano / limite ── */
+    .plan-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 20px;
+      box-shadow: var(--shadow-sm); display: flex; align-items: center;
+      justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .plan-info { display: flex; flex-direction: column; gap: 4px; }
+    .plan-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); }
+    .plan-name  { font-size: 15px; font-weight: 700; color: var(--text); }
+    .plan-bar-wrap { flex: 1; min-width: 160px; }
+    .plan-bar-label { font-size: 11px; color: var(--text-3); margin-bottom: 5px; display: flex; justify-content: space-between; }
+    .plan-bar-bg { height: 6px; background: var(--bg); border-radius: 99px; border: 1px solid var(--border); overflow: hidden; }
+    .plan-bar-fill { height: 100%; background: var(--blue); border-radius: 99px; transition: width .4s; }
+    .plan-bar-fill.warn { background: var(--amber); }
+    .plan-bar-fill.full { background: var(--red); }
+
+    /* ── Modal genérico ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 200;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius-lg);
+      padding: 28px; max-width: 440px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      animation: popIn .22s ease both;
+    }
+    .modal-head { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .modal-sub  { font-size: 13px; color: var(--text-2); margin-bottom: 20px; line-height: 1.5; }
+    .modal-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .modal-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-modal-ok {
+      flex: 1; padding: 11px; background: var(--blue); color: #fff;
+      border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: background .15s;
+    }
+    .btn-modal-ok:hover { background: var(--blue-hover); }
+    .btn-modal-cancel {
+      padding: 11px 16px; background: var(--surface); color: var(--text-2);
+      border: 1px solid var(--border-med); border-radius: var(--radius);
+      font-size: 14px; font-family: 'Inter', sans-serif; cursor: pointer;
+    }
+    .btn-modal-cancel:hover { background: var(--bg); }
+
+    /* Admin panel */
+    .admin-section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--text-3); margin-bottom: 8px;
+    }
+    .sheets-status-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-radius: var(--radius);
+      background: var(--bg); border: 1px solid var(--border);
+      font-size: 13px; color: var(--text-2); margin-bottom: 14px;
+    }
+    .sheets-status-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-med); }
+    .sheets-status-row .dot.online { background: var(--green); }
+    .btn-logout-admin {
+      width: 100%; padding: 9px; border-radius: var(--radius);
+      border: 1px solid var(--border-med); background: var(--surface);
+      font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
+      color: var(--red); cursor: pointer; transition: all .15s; margin-top: 8px;
+    }
+    .btn-logout-admin:hover { background: var(--red-bg); }
+
+    /* Limit editor */
+    .limit-row { display: flex; gap: 8px; align-items: flex-end; }
+    .limit-row input { flex: 1; }
+    .btn-save-limit {
+      padding: 9px 16px; background: var(--blue); color: #fff;
+      border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-save-limit:hover { background: var(--blue-hover); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--green-text); color: #fff;
+      padding: 12px 20px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: var(--shadow); z-index: 999;
+      transition: transform .35s cubic-bezier(.34,1.4,.64,1), opacity .3s;
+      opacity: 0; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.err  { background: var(--red); }
+    .toast svg  { width: 15px; height: 15px; }
+
+    /* ── Modal PDF ── */
+    .modal-pdf-info { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .modal-pdf-sub  { font-size: 13px; color: var(--text-2); }
+
+    /* ── Footer ── */
+    footer { text-align: center; margin-top: 8px; font-size: 12px; color: var(--text-3); }
+    footer strong { color: var(--text-2); font-weight: 500; }
+    footer .brand { color: var(--blue); font-weight: 600; }
+
+    /* ── Print ── */
+    @media print {
+      body { background: #fff; }
+      .topbar, .tabs, .actions, .err-msg, .toast,
+      .modal-overlay, .limit-banner, .plan-card { display: none !important; }
+      .tab-panel { display: block !important; }
+      .card { box-shadow: none; border-color: #ddd; break-inside: avoid; }
+      .page { padding: 8px; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 22V12M3 7l9 5 9-5"/>
+    </svg>
+  </div>
+  <div class="loading-name">Impulsionando Advogados</div>
+  <div class="loading-sub">Ficha de Atendimento</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- Auth -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 22V12M3 7l9 5 9-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="auth-logo-name">Impulsionando Advogados</div>
+        <div class="auth-logo-sub">Ficha de Atendimento</div>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Criar conta</button>
+    </div>
+
+    <!-- Login -->
+    <div id="formLogin">
+      <div class="auth-fields">
+        <div class="auth-field">
+          <label class="auth-label">E-mail</label>
+          <input type="email" id="loginEmail" class="auth-input" placeholder="seu@email.com"/>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Senha</label>
+          <input type="password" id="loginSenha" class="auth-input" placeholder="Sua senha" onkeydown="if(event.key==='Enter')fazerLogin()"/>
+        </div>
+      </div>
+      <div class="auth-err" id="loginErr"></div>
+      <button class="auth-btn" id="btnLogin" onclick="fazerLogin()">Entrar</button>
+    </div>
+
+    <!-- Registro -->
+    <div id="formRegister" style="display:none">
+      <div class="auth-fields">
+        <div class="auth-field">
+          <label class="auth-label">Nome completo</label>
+          <input type="text" id="regNome" class="auth-input" placeholder="Dr. João Silva"/>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">E-mail</label>
+          <input type="email" id="regEmail" class="auth-input" placeholder="seu@email.com"/>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Senha (mín. 6 caracteres)</label>
+          <input type="password" id="regSenha" class="auth-input" placeholder="Crie uma senha" onkeydown="if(event.key==='Enter')fazerRegistro()"/>
+        </div>
+      </div>
+      <div class="auth-err" id="registerErr"></div>
+      <button class="auth-btn" id="btnRegister" onclick="fazerRegistro()">Criar conta</button>
+    </div>
+
+    <div class="auth-footer">Acesso restrito — uso interno do escritório</div>
+  </div>
+</div>
+
+<!-- App -->
+<div class="app-screen" id="appScreen">
+
+  <nav class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 22V12M3 7l9 5 9-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="app-name">Ficha de Atendimento</div>
+        <div class="app-sub">Usucapião</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot" id="statusDot" title="Status Sheets"></div>
+      <div class="user-badge" id="userBadge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="userBadgeName">...</span>
+      </div>
+      <button class="btn-icon" id="btnAdmin" onclick="abrirAdmin()" title="Admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </button>
+      <button class="btn-icon" onclick="fazerLogout()" title="Sair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Banner limite -->
+  <div class="limit-banner" id="limitBanner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="limitBannerText">Você atingiu o limite do plano gratuito.</span>
+  </div>
+
+  <div class="page">
+
+    <!-- Plano -->
+    <div class="plan-card" id="planCard">
+      <div class="plan-info">
+        <div class="plan-label">Plano atual</div>
+        <div class="plan-name" id="planName">Gratuito</div>
+      </div>
+      <div class="plan-bar-wrap">
+        <div class="plan-bar-label">
+          <span id="planUsed">0 fichas usadas</span>
+          <span id="planMax">— / —</span>
+        </div>
+        <div class="plan-bar-bg">
+          <div class="plan-bar-fill" id="planBarFill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('ficha',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Nova Ficha
+      </button>
+      <button class="tab" onclick="showTab('historico',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Histórico
+        <span id="histCount" style="font-size:11px;background:rgba(255,255,255,.2);padding:1px 6px;border-radius:99px;margin-left:2px"></span>
+      </button>
+    </div>
+
+    <!-- TAB FICHA -->
+    <div class="tab-panel active" id="tab-ficha">
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Identificação do Cliente
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label">Data do Atendimento <span class="req">*</span></label>
+            <input type="date" id="dataAtendimento"/>
+          </div>
+          <div class="field">
+            <label class="field-label">CPF</label>
+            <input type="text" id="cpf" placeholder="000.000.000-00" oninput="maskCPF(this)" maxlength="14"/>
+          </div>
+          <div class="field span2">
+            <label class="field-label">Nome completo <span class="req">*</span></label>
+            <input type="text" id="nomeCliente" placeholder="Nome completo do cliente"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Celular</label>
+            <input type="tel" id="celular" placeholder="(11) 99999-9999" oninput="maskPhone(this)" maxlength="15"/>
+          </div>
+          <div class="field">
+            <label class="field-label">E-mail</label>
+            <input type="email" id="email" placeholder="email@exemplo.com"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Dados do Imóvel
+        </div>
+        <div class="form-grid">
+          <div class="field span2">
+            <label class="field-label">Endereço <span class="req">*</span></label>
+            <input type="text" id="enderecoImovel" placeholder="Rua, número, complemento"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Bairro</label>
+            <input type="text" id="bairro" placeholder="Bairro"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Cidade / UF</label>
+            <input type="text" id="cidadeUf" placeholder="São Paulo / SP"/>
+          </div>
+          <div class="divider span2"></div>
+          <div class="field span2">
+            <label class="field-label">Uso do imóvel <span class="req">*</span></label>
+            <div class="radio-group" id="rgUso">
+              <label class="radio-opt" onclick="selectRadio('rgUso',this,'Residencial')"><div class="radio-dot"></div>Residencial</label>
+              <label class="radio-opt" onclick="selectRadio('rgUso',this,'Comercial')"><div class="radio-dot"></div>Comercial</label>
+              <label class="radio-opt" onclick="selectRadio('rgUso',this,'Rural')"><div class="radio-dot"></div>Rural</label>
+              <label class="radio-opt" onclick="selectRadio('rgUso',this,'Misto')"><div class="radio-dot"></div>Misto</label>
+            </div>
+          </div>
+          <div class="field span2">
+            <label class="field-label">Forma de aquisição <span class="req">*</span></label>
+            <select id="formaAquisicao">
+              <option value="">Selecione...</option>
+              <option>Compra informal (contrato de gaveta)</option>
+              <option>Herança / Família</option>
+              <option>Doação</option>
+              <option>Ocupação de área abandonada</option>
+              <option>Cessão de posse</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Tempo de posse <span class="req">*</span></label>
+            <input type="text" id="tempoPosse" placeholder="Ex: 12 anos"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Área aproximada (m²)</label>
+            <input type="text" id="areaImovel" placeholder="Ex: 250 m²"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 22V12M3 7l9 5 9-5"/></svg>
+          Aspectos Jurídicos
+        </div>
+        <div class="form-grid">
+          <div class="field span2">
+            <label class="field-label">Possui documentos?</label>
+            <div class="radio-group" id="rgDocs">
+              <label class="radio-opt" onclick="selectRadio('rgDocs',this,'Sim — contrato de gaveta')"><div class="radio-dot"></div>Contrato de gaveta</label>
+              <label class="radio-opt" onclick="selectRadio('rgDocs',this,'Sim — recibos')"><div class="radio-dot"></div>Recibos</label>
+              <label class="radio-opt" onclick="selectRadio('rgDocs',this,'Não')"><div class="radio-dot"></div>Não</label>
+              <label class="radio-opt" onclick="selectRadio('rgDocs',this,'Parcialmente')"><div class="radio-dot"></div>Parcialmente</label>
+            </div>
+          </div>
+          <div class="field span2">
+            <label class="field-label">Há oposição ou conflito?</label>
+            <div class="radio-group" id="rgOposicao">
+              <label class="radio-opt" onclick="selectRadio('rgOposicao',this,'Não')"><div class="radio-dot"></div>Não</label>
+              <label class="radio-opt" onclick="selectRadio('rgOposicao',this,'Sim — vizinhos')"><div class="radio-dot"></div>Vizinhos</label>
+              <label class="radio-opt" onclick="selectRadio('rgOposicao',this,'Sim — familiar')"><div class="radio-dot"></div>Familiar</label>
+              <label class="radio-opt" onclick="selectRadio('rgOposicao',this,'Sim — terceiro')"><div class="radio-dot"></div>Terceiro</label>
+            </div>
+          </div>
+          <div class="field span2">
+            <label class="field-label">Outros ocupantes?</label>
+            <div class="radio-group" id="rgOcupantes">
+              <label class="radio-opt" onclick="selectRadio('rgOcupantes',this,'Não — mora sozinho')"><div class="radio-dot"></div>Não</label>
+              <label class="radio-opt" onclick="selectRadio('rgOcupantes',this,'Sim — família')"><div class="radio-dot"></div>Família</label>
+              <label class="radio-opt" onclick="selectRadio('rgOcupantes',this,'Sim — terceiros')"><div class="radio-dot"></div>Terceiros</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Observações / Descrição Detalhada
+        </div>
+        <textarea id="observacoes" placeholder="Histórico da posse, testemunhas, documentos mencionados, peculiaridades do imóvel, observações sobre o cliente..."></textarea>
+      </div>
+
+      <div class="err-msg" id="errMsg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="errText">Preencha os campos obrigatórios.</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn-secondary" onclick="limparFormulario()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          Limpar
+        </button>
+        <button class="btn-primary" id="btnSalvar" onclick="salvarFicha()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar ficha
+        </button>
+      </div>
+
+    </div><!-- /tab-ficha -->
+
+    <!-- TAB HISTÓRICO -->
+    <div class="tab-panel" id="tab-historico">
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Atendimentos
+        </div>
+        <div class="hist-toolbar">
+          <span class="count-badge" id="countBadge">0 registros</span>
+          <div class="admin-actions" id="adminActions" style="display:none">
+            <button class="export-btn" onclick="exportarCSV()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+        <!-- Filtro admin por usuário -->
+        <div class="filter-bar" id="filterBar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          <span>Filtrar por usuário:</span>
+          <select id="filterUser" onchange="renderHistorico()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div id="histList"></div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Desenvolvido por <strong>Leonardo da Silva Oliveira</strong> &nbsp;·&nbsp; <span class="brand">Impulsionando Advogados</span></p>
+    </footer>
+
+  </div>
+</div><!-- /app-screen -->
+
+<!-- Modal Admin -->
+<div class="modal-overlay" id="modalAdmin" onclick="fecharModalFora(event,'modalAdmin')">
+  <div class="modal">
+    <div class="modal-head">Painel Administrativo</div>
+    <div class="modal-sub">Configurações restritas ao administrador.</div>
+
+    <div class="admin-section-title">Google Sheets</div>
+    <div class="sheets-status-row">
+      <div class="dot" id="adminDot"></div>
+      <span id="adminStatusTxt">Não configurado</span>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">URL do Apps Script</label>
+      <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/..."/>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button class="btn-modal-ok" onclick="salvarConfig()">Salvar URL</button>
+      <button class="btn-modal-cancel" onclick="testarConexao()">Testar</button>
+    </div>
+
+    <div class="admin-section-title">Limite de fichas por usuário (plano gratuito)</div>
+    <div class="limit-row" style="margin-bottom:20px">
+      <input type="number" id="inputLimite" min="1" max="9999" placeholder="Ex: 10"/>
+      <button class="btn-save-limit" onclick="salvarLimite()">Salvar</button>
+    </div>
+
+    <div class="divider" style="margin-bottom:16px"></div>
+    <button class="btn-logout-admin" onclick="fecharModal('modalAdmin')">Fechar painel</button>
+  </div>
+</div>
+
+<!-- Modal PDF -->
+<div class="modal-overlay" id="modalPDF" onclick="fecharModalFora(event,'modalPDF')">
+  <div class="modal">
+    <div class="modal-head">Ficha salva!</div>
+    <div class="modal-pdf-info" id="pdfNomeCliente"></div>
+    <div class="modal-pdf-sub" style="margin-bottom:20px">Deseja imprimir ou salvar como PDF?</div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="fecharModal('modalPDF')">Agora não</button>
+      <button class="btn-modal-ok" onclick="imprimirUltimaFicha()">Imprimir / PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+import { initializeApp }                              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword,
+         signInWithEmailAndPassword, signOut,
+         onAuthStateChanged, updateProfile }          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs,
+         query, where, orderBy, doc, getDoc,
+         setDoc, updateDoc, serverTimestamp }         from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ══════════════════════════════════════════════════════════════
+//  ⚙  CONFIGURAÇÕES — substitua pelos seus dados do Firebase
+// ══════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyDG_w3KvxtUGyM4oqpPVsxvoVGFS0yEu7w",
+  authDomain:        "impulsionando-advogados.firebaseapp.com",
+  projectId:         "impulsionando-advogados",
+  storageBucket:     "impulsionando-advogados.firebasestorage.app",
+  messagingSenderId: "752204265436",
+  appId:             "1:752204265436:web:e6cfabfac8bba73a13c119"
+};
+
+// Email do administrador — único com acesso total
+// Substitua pelo seu email real do Google/Firebase
+const ADMIN_EMAIL = "COLE_SEU_EMAIL_AQUI";
+
+// URL fixa do Google Apps Script (opcional — deixe '' para configurar pelo painel)
+const SHEETS_URL_FIXA = '';
+
+// ══════════════════════════════════════════════════════════════
+//  INIT FIREBASE
+// ══════════════════════════════════════════════════════════════
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── Estado global ──────────────────────────────────────────────
+let currentUser  = null;
+let isAdmin      = false;
+let fichas       = [];
+let ultimaFicha  = null;
+let radiosVal    = {};
+let SHEETS_URL   = '';
+let LIMITE_FICHAS = 10;
+
+// ── Aguarda Firebase resolver auth antes de mostrar tela ───────
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    isAdmin = (user.email === ADMIN_EMAIL);
+    await carregarConfig();
+    mostrarApp();
+  } else {
+    currentUser = null;
+    isAdmin = false;
+    mostrarAuth();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  TELAS
+// ══════════════════════════════════════════════════════════════
+function mostrarApp() {
+  document.getElementById('loadingScreen').classList.add('hide');
+  document.getElementById('authScreen').classList.remove('show');
+  document.getElementById('appScreen').classList.add('show');
+
+  // Nome do usuário na topbar
+  const nome = currentUser.displayName || currentUser.email.split('@')[0];
+  document.getElementById('userBadgeName').textContent = nome;
+
+  // Botão admin visível apenas para admin
+  document.getElementById('btnAdmin').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('adminActions').style.display = isAdmin ? 'flex' : 'none';
+
+  // Data padrão
+  document.getElementById('dataAtendimento').value = new Date().toISOString().slice(0,10);
+
+  atualizarStatusDot();
+  carregarFichas();
+}
+
+function mostrarAuth() {
+  document.getElementById('loadingScreen').classList.add('hide');
+  document.getElementById('appScreen').classList.remove('show');
+  document.getElementById('authScreen').classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════
+window.switchAuthTab = function(tab) {
+  document.getElementById('tabLogin').classList.toggle('active', tab==='login');
+  document.getElementById('tabRegister').classList.toggle('active', tab==='register');
+  document.getElementById('formLogin').style.display    = tab==='login'    ? 'block' : 'none';
+  document.getElementById('formRegister').style.display = tab==='register' ? 'block' : 'none';
+  document.getElementById('loginErr').classList.remove('show');
+  document.getElementById('registerErr').classList.remove('show');
+};
+
+window.fazerLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  const errEl = document.getElementById('loginErr');
+  const btn   = document.getElementById('btnLogin');
+  if (!email || !senha) { errEl.textContent='Preencha e-mail e senha.'; errEl.classList.add('show'); return; }
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    await signInWithEmailAndPassword(auth, email, senha);
+  } catch(e) {
+    errEl.textContent = traduzirErroAuth(e.code);
+    errEl.classList.add('show');
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+};
+
+window.fazerRegistro = async function() {
+  const nome  = document.getElementById('regNome').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const senha = document.getElementById('regSenha').value;
+  const errEl = document.getElementById('registerErr');
+  const btn   = document.getElementById('btnRegister');
+  if (!nome||!email||!senha) { errEl.textContent='Preencha todos os campos.'; errEl.classList.add('show'); return; }
+  if (senha.length < 6)      { errEl.textContent='A senha deve ter ao menos 6 caracteres.'; errEl.classList.add('show'); return; }
+  btn.disabled = true; btn.textContent = 'Criando conta...';
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, senha);
+    await updateProfile(cred.user, { displayName: nome });
+    // Cria documento do usuário no Firestore
+    await setDoc(doc(db, 'usuarios', cred.user.uid), {
+      nome, email, plano: 'gratuito', fichasUsadas: 0, criadoEm: serverTimestamp()
+    });
+  } catch(e) {
+    errEl.textContent = traduzirErroAuth(e.code);
+    errEl.classList.add('show');
+    btn.disabled = false; btn.textContent = 'Criar conta';
+  }
+};
+
+window.fazerLogout = async function() {
+  await signOut(auth);
+  // Reseta botão e campos do login
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginSenha').value = '';
+  document.getElementById('loginErr').classList.remove('show');
+  // Reseta botão e campos do registro
+  const btnR = document.getElementById('btnRegister');
+  btnR.disabled = false;
+  btnR.textContent = 'Criar conta';
+  document.getElementById('regNome').value  = '';
+  document.getElementById('regEmail').value = '';
+  document.getElementById('regSenha').value = '';
+  document.getElementById('registerErr').classList.remove('show');
+  // Volta para aba login
+  switchAuthTab('login');
+  // Limpa estado
+  fichas = [];
+  ultimaFicha = null;
+  radiosVal = {};
+};
+
+function traduzirErroAuth(code) {
+  const erros = {
+    'auth/invalid-email':          'E-mail inválido.',
+    'auth/user-not-found':         'Usuário não encontrado.',
+    'auth/wrong-password':         'Senha incorreta.',
+    'auth/email-already-in-use':   'Este e-mail já está cadastrado.',
+    'auth/weak-password':          'Senha muito fraca (mín. 6 caracteres).',
+    'auth/invalid-credential':     'E-mail ou senha incorretos.',
+    'auth/too-many-requests':      'Muitas tentativas. Tente mais tarde.',
+  };
+  return erros[code] || 'Erro ao autenticar. Tente novamente.';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONFIG (Firestore — documento global de config)
+// ══════════════════════════════════════════════════════════════
+async function carregarConfig() {
+  try {
+    const snap = await getDoc(doc(db, 'config', 'global'));
+    if (snap.exists()) {
+      const d = snap.data();
+      SHEETS_URL    = SHEETS_URL_FIXA || d.sheetsUrl || '';
+      LIMITE_FICHAS = d.limiteFichas  || 10;
+    }
+    if (SHEETS_URL_FIXA) SHEETS_URL = SHEETS_URL_FIXA;
+  } catch(_) {}
+}
+
+async function salvarConfigFirestore(dados) {
+  await setDoc(doc(db, 'config', 'global'), dados, { merge: true });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════════════════════
+window.showTab = function(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='historico') renderHistorico();
+};
+
+// ══════════════════════════════════════════════════════════════
+//  RADIO BUTTONS
+// ══════════════════════════════════════════════════════════════
+window.selectRadio = function(groupId, el, value) {
+  document.querySelectorAll('#'+groupId+' .radio-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  radiosVal[groupId] = value;
+};
+
+// ══════════════════════════════════════════════════════════════
+//  MÁSCARAS
+// ══════════════════════════════════════════════════════════════
+window.maskCPF = function(el) {
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>9) v=v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/,'$1.$2.$3-$4');
+  else if(v.length>6) v=v.replace(/^(\d{3})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
+  else if(v.length>3) v=v.replace(/^(\d{3})(\d{0,3}).*/,'$1.$2');
+  el.value=v;
+};
+window.maskPhone = function(el) {
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>10) v=v.replace(/^(\d{2})(\d{5})(\d{4}).*/,'($1) $2-$3');
+  else if(v.length>6) v=v.replace(/^(\d{2})(\d{4,5})(\d{0,4}).*/,'($1) $2-$3');
+  else if(v.length>2) v=v.replace(/^(\d{2})(\d{0,5}).*/,'($1) $2');
+  else v=v.replace(/^(\d{0,2}).*/,'($1');
+  el.value=v;
+};
+
+// ══════════════════════════════════════════════════════════════
+//  CARREGAR FICHAS DO FIRESTORE
+// ══════════════════════════════════════════════════════════════
+async function carregarFichas() {
+  try {
+    let q;
+    if (isAdmin) {
+      // Admin vê todas
+      q = query(collection(db,'fichas'), orderBy('criadoEm','desc'));
+    } else {
+      // Usuário vê só as suas
+      q = query(collection(db,'fichas'), where('userId','==',currentUser.uid), orderBy('criadoEm','desc'));
+    }
+    const snap = await getDocs(q);
+    fichas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    atualizarPlanCard();
+    renderHistorico();
+    popularFiltroUsuarios();
+  } catch(e) { console.error(e); }
+}
+
+function atualizarPlanCard() {
+  const minhas = fichas.filter(f => f.userId === currentUser.uid).length;
+  const pct    = Math.min((minhas / LIMITE_FICHAS) * 100, 100);
+  const fill   = document.getElementById('planBarFill');
+
+  document.getElementById('planUsed').textContent = `${minhas} ficha${minhas!==1?'s':''} usada${minhas!==1?'s':''}`;
+  document.getElementById('planMax').textContent  = isAdmin ? '∞' : `${minhas} / ${LIMITE_FICHAS}`;
+  fill.style.width = isAdmin ? '0%' : pct+'%';
+  fill.className   = 'plan-bar-fill' + (pct>=100?' full':pct>=80?' warn':'');
+
+  if (isAdmin) {
+    document.getElementById('planName').textContent = 'Administrador';
+    document.getElementById('planCard').style.display = 'none';
+  }
+
+  // Banner de limite
+  const banner = document.getElementById('limitBanner');
+  if (!isAdmin && minhas >= LIMITE_FICHAS) {
+    document.getElementById('limitBannerText').textContent =
+      `Você atingiu o limite de ${LIMITE_FICHAS} fichas do plano gratuito.`;
+    banner.classList.add('show');
+    document.getElementById('btnSalvar').disabled = true;
+  } else {
+    banner.classList.remove('show');
+    document.getElementById('btnSalvar').disabled = false;
+  }
+
+  document.getElementById('inputLimite').value = LIMITE_FICHAS;
+}
+
+function popularFiltroUsuarios() {
+  if (!isAdmin) return;
+  const sel  = document.getElementById('filterUser');
+  const uids = [...new Set(fichas.map(f=>f.userId))];
+  sel.innerHTML = '<option value="">Todos os usuários</option>';
+  uids.forEach(uid => {
+    const f = fichas.find(x=>x.userId===uid);
+    const opt = document.createElement('option');
+    opt.value = uid;
+    opt.textContent = f?.responsavel || uid;
+    sel.appendChild(opt);
+  });
+  document.getElementById('filterBar').classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  VALIDAÇÃO E COLETA
+// ══════════════════════════════════════════════════════════════
+function validar() {
+  let ok = true;
+  ['dataAtendimento','nomeCliente','enderecoImovel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el.value.trim()){el.classList.add('error');ok=false;}
+    else el.classList.remove('error');
+  });
+  if(!radiosVal['rgUso']) ok=false;
+  const sel=document.getElementById('formaAquisicao');
+  if(!sel.value){sel.classList.add('error');ok=false;}else sel.classList.remove('error');
+  const tp=document.getElementById('tempoPosse');
+  if(!tp.value.trim()){tp.classList.add('error');ok=false;}else tp.classList.remove('error');
+  return ok;
+}
+
+function getVal(id){ return document.getElementById(id).value.trim(); }
+
+function coletarDados() {
+  const nome = currentUser.displayName || currentUser.email.split('@')[0];
+  return {
+    userId:           currentUser.uid,
+    responsavel:      nome,
+    responsavelEmail: currentUser.email,
+    dataAtendimento:  getVal('dataAtendimento'),
+    nomeCliente:      getVal('nomeCliente'),
+    cpf:              getVal('cpf'),
+    celular:          getVal('celular'),
+    email:            getVal('email'),
+    enderecoImovel:   getVal('enderecoImovel'),
+    bairro:           getVal('bairro'),
+    cidadeUf:         getVal('cidadeUf'),
+    formaAquisicao:   getVal('formaAquisicao'),
+    tempoPosse:       getVal('tempoPosse'),
+    areaImovel:       getVal('areaImovel'),
+    usoImovel:        radiosVal['rgUso']       || '',
+    possuiDocumentos: radiosVal['rgDocs']      || '',
+    oposicaoConflito: radiosVal['rgOposicao']  || '',
+    outrosOcupantes:  radiosVal['rgOcupantes'] || '',
+    observacoes:      getVal('observacoes'),
+    criadoEm:         serverTimestamp(),
+    enviadoSheets:    false
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SALVAR FICHA
+// ══════════════════════════════════════════════════════════════
+window.salvarFicha = async function() {
+  if (!validar()) {
+    document.getElementById('errMsg').classList.add('visible');
+    document.getElementById('errText').textContent = 'Preencha os campos obrigatórios antes de salvar.';
+    return;
+  }
+  document.getElementById('errMsg').classList.remove('visible');
+
+  const btn = document.getElementById('btnSalvar');
+  btn.disabled = true;
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg> Salvando...`;
+
+  const dados = coletarDados();
+
+  try {
+    // Salva no Firestore
+    const ref = await addDoc(collection(db, 'fichas'), dados);
+    dados.id = ref.id;
+
+    // Atualiza contador do usuário
+    const userRef = doc(db, 'usuarios', currentUser.uid);
+    const userSnap = await getDoc(userRef);
+    const usadas = (userSnap.exists() ? userSnap.data().fichasUsadas || 0 : 0) + 1;
+    await updateDoc(userRef, { fichasUsadas: usadas });
+
+    // Envia para Google Sheets
+    if (SHEETS_URL) enviarSheets({ ...dados, id: ref.id });
+
+    ultimaFicha = { ...dados, id: ref.id };
+    fichas.unshift(ultimaFicha);
+    atualizarPlanCard();
+
+    limparFormulario(false);
+    document.getElementById('pdfNomeCliente').textContent = dados.nomeCliente;
+    abrirModal('modalPDF');
+
+  } catch(e) {
+    showToast('Erro ao salvar: ' + e.message, true);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar ficha`;
+};
+
+// ══════════════════════════════════════════════════════════════
+//  GOOGLE SHEETS (GET com parâmetros)
+// ══════════════════════════════════════════════════════════════
+function enviarSheets(dados) {
+  if (!SHEETS_URL) return;
+  const params = new URLSearchParams();
+  params.set('acao', 'salvar');
+  Object.entries(dados).forEach(([k,v]) => {
+    if (typeof v !== 'object') params.set(k, String(v ?? ''));
+  });
+  const s = document.createElement('script');
+  s.src = SHEETS_URL + '?' + params.toString() + '&callback=_sheetsCallback';
+  s.onerror = () => {};
+  document.body.appendChild(s);
+  setTimeout(()=>{ try{document.body.removeChild(s);}catch(_){} }, 5000);
+}
+window._sheetsCallback = function(){};
+
+// ══════════════════════════════════════════════════════════════
+//  RENDERIZAR HISTÓRICO
+// ══════════════════════════════════════════════════════════════
+window.renderHistorico = function() {
+  const list    = document.getElementById('histList');
+  const filterU = isAdmin ? document.getElementById('filterUser').value : currentUser?.uid;
+  const lista   = isAdmin && !filterU ? fichas : fichas.filter(f=>f.userId===filterU);
+
+  document.getElementById('histCount').textContent  = lista.length > 0 ? lista.length : '';
+  document.getElementById('countBadge').textContent = `${lista.length} registro${lista.length!==1?'s':''}`;
+
+  if (lista.length === 0) {
+    list.innerHTML = `<div class="hist-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <p>Nenhum atendimento encontrado.</p>
+      <span>Preencha uma ficha para ver o histórico aqui.</span>
+    </div>`; return;
+  }
+
+  // Guarda referência das fichas renderizadas para o botão imprimir acessar pelo ID
+  window._fichasRenderizadas = lista;
+
+  list.innerHTML = lista.map((f, i) => `
+    <div class="hist-item">
+      <div class="hist-header">
+        <div>
+          <div class="hist-nome">${f.nomeCliente||'—'}</div>
+          <div class="hist-data">${formatData(f.dataAtendimento)} &nbsp;·&nbsp; ${f.criadoEm?.toDate ? f.criadoEm.toDate().toLocaleString('pt-BR') : '—'}</div>
+          ${isAdmin ? `<div class="hist-responsavel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${f.responsavel||'—'}</div>` : ''}
+        </div>
+      </div>
+      <div class="hist-tags">
+        ${f.enderecoImovel?`<span class="hist-tag">📍 ${f.enderecoImovel}</span>`:''}
+        ${f.usoImovel?`<span class="hist-tag">${f.usoImovel}</span>`:''}
+        ${f.tempoPosse?`<span class="hist-tag">⏱ ${f.tempoPosse}</span>`:''}
+        ${f.formaAquisicao?`<span class="hist-tag">${f.formaAquisicao}</span>`:''}
+      </div>
+      <div class="hist-actions">
+        ${isAdmin?`<button class="hist-btn" onclick="reenviarSheets(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          Reenviar Sheets
+        </button>`:''}
+        <button class="hist-btn" onclick="window.imprimirFicha(window._fichasRenderizadas[${i}])">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir / PDF
+        </button>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.reenviarSheets = function(i) {
+  const filterU = document.getElementById('filterUser').value;
+  const lista   = isAdmin && !filterU ? fichas : fichas.filter(f=>f.userId===filterU);
+  enviarSheets(lista[i]);
+  showToast('Reenviado para Sheets!');
+};
+
+// ══════════════════════════════════════════════════════════════
+//  EXPORTAR CSV (apenas admin)
+// ══════════════════════════════════════════════════════════════
+window.exportarCSV = function() {
+  if (!isAdmin) return;
+  const cols   = ['dataAtendimento','responsavel','responsavelEmail','nomeCliente','cpf','celular','email','enderecoImovel','bairro','cidadeUf','formaAquisicao','tempoPosse','areaImovel','usoImovel','possuiDocumentos','oposicaoConflito','outrosOcupantes','observacoes'];
+  const header = ['Data Atendimento','Responsável','Email Responsável','Nome Cliente','CPF','Celular','Email','Endereço','Bairro','Cidade/UF','Forma Aquisição','Tempo Posse','Área','Uso','Documentos','Oposição','Outros Ocupantes','Observações'];
+  const rows   = fichas.map(f => cols.map(c=>`"${(f[c]||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv    = [header.join(','),...rows].join('\n');
+  const blob   = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `atendimentos_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('CSV exportado!');
+};
+
+// ══════════════════════════════════════════════════════════════
+//  ADMIN — CONFIG E LIMITE
+// ══════════════════════════════════════════════════════════════
+window.abrirAdmin = function() {
+  if (!isAdmin) return;
+  document.getElementById('sheetsUrl').value = SHEETS_URL;
+  atualizarAdminDot();
+  abrirModal('modalAdmin');
+};
+
+window.salvarConfig = async function() {
+  const url = document.getElementById('sheetsUrl').value.trim();
+  if (url && !url.startsWith('https://script.google.com')) {
+    showToast('URL inválida.', true); return;
+  }
+  SHEETS_URL = url;
+  await salvarConfigFirestore({ sheetsUrl: url });
+  atualizarStatusDot();
+  atualizarAdminDot();
+  showToast(url ? 'URL salva! Testando...' : 'URL removida.');
+  if (url) testarConexao();
+};
+
+window.salvarLimite = async function() {
+  const v = parseInt(document.getElementById('inputLimite').value);
+  if (!v || v < 1) { showToast('Limite inválido.', true); return; }
+  LIMITE_FICHAS = v;
+  await salvarConfigFirestore({ limiteFichas: v });
+  atualizarPlanCard();
+  showToast(`Limite atualizado para ${v} fichas.`);
+};
+
+window.testarConexao = async function() {
+  if (!SHEETS_URL) { showToast('Nenhuma URL configurada.', true); return; }
+  showToast('Testando conexão...');
+  const img = new Image();
+  img.onload = img.onerror = () => showToast('✓ URL alcançada com sucesso!');
+  img.src = SHEETS_URL + '?t=' + Date.now();
+};
+
+function atualizarStatusDot() {
+  const dot = document.getElementById('statusDot');
+  dot.classList.toggle('online', !!SHEETS_URL);
+}
+
+function atualizarAdminDot() {
+  const dot = document.getElementById('adminDot');
+  const txt = document.getElementById('adminStatusTxt');
+  dot.classList.toggle('online', !!SHEETS_URL);
+  txt.textContent = SHEETS_URL ? 'Conectado' : 'Não configurado';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LIMPAR FORMULÁRIO
+// ══════════════════════════════════════════════════════════════
+window.limparFormulario = function(resetData=true) {
+  ['dataAtendimento','nomeCliente','cpf','celular','email',
+   'enderecoImovel','bairro','cidadeUf','tempoPosse','areaImovel','observacoes']
+    .forEach(id=>{const el=document.getElementById(id);el.value='';el.classList.remove('error');});
+  document.getElementById('formaAquisicao').value='';
+  document.getElementById('formaAquisicao').classList.remove('error');
+  document.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+  radiosVal={};
+  document.getElementById('errMsg').classList.remove('visible');
+  if (resetData) document.getElementById('dataAtendimento').value=new Date().toISOString().slice(0,10);
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+// ══════════════════════════════════════════════════════════════
+//  IMPRIMIR / PDF
+// ══════════════════════════════════════════════════════════════
+window.imprimirUltimaFicha = function() {
+  fecharModal('modalPDF');
+  if (ultimaFicha) imprimirFicha(ultimaFicha);
+};
+
+window.imprimirFicha = function(f) {
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8"/><title>Ficha — ${f.nomeCliente||'Atendimento'}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:210mm;min-height:297mm;font-family:Arial,sans-serif;font-size:11px;color:#101828;background:#fff}
+.page{width:210mm;min-height:297mm;padding:14mm 16mm 12mm;display:flex;flex-direction:column}
+.header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:10px;border-bottom:2.5px solid #1A4A8A;margin-bottom:14px}
+.ht{font-size:14px;font-weight:700;color:#1A4A8A}.hs{font-size:9px;color:#98A2B3;margin-top:2px}
+.hr{text-align:right}.hrn{font-size:13px;font-weight:700}.hrd{font-size:10px;color:#98A2B3;margin-top:2px}
+.hrr{font-size:10px;color:#4A7AC0;margin-top:2px}
+.sec{margin-bottom:12px}
+.sec-t{font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:#1A4A8A;padding:4px 10px;border-radius:3px;margin-bottom:8px;display:inline-block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 14px}
+.s2{grid-column:span 2}
+.f{display:flex;flex-direction:column;gap:2px}
+.lb{font-size:8.5px;font-weight:600;color:#98A2B3;text-transform:uppercase;letter-spacing:.06em}
+.vl{font-size:11px;font-weight:500;color:#101828;padding:4px 0;border-bottom:1px solid #E4E7EC;min-height:22px}
+.obs{font-size:11px;color:#101828;line-height:1.65;white-space:pre-wrap;padding:8px 10px;background:#F9FAFB;border:1px solid #E4E7EC;border-radius:5px;min-height:60px}
+.ass{margin-top:auto;padding-top:16px;border-top:1px solid #E4E7EC;display:flex;justify-content:space-between;gap:20px}
+.ac{display:flex;flex-direction:column;gap:6px;flex:1}
+.al{border-bottom:1px solid #101828;height:28px}
+.alb{font-size:9px;color:#98A2B3;text-align:center}
+.foot{margin-top:12px;padding-top:8px;border-top:1px solid #E4E7EC;display:flex;justify-content:space-between;font-size:8.5px;color:#C0C8D8}
+.foot strong{color:#98A2B3}
+@media print{html,body{width:210mm}@page{size:A4 portrait;margin:0}}
+</style></head><body>
+<div class="page">
+<div class="header">
+  <div><div class="ht">Impulsionando Advogados</div><div class="hs">Ficha de Atendimento — Usucapião</div></div>
+  <div class="hr">
+    <div class="hrn">${f.nomeCliente||'—'}</div>
+    <div class="hrd">Atendimento: ${formatData(f.dataAtendimento)}</div>
+    <div class="hrr">Responsável: ${f.responsavel||'—'}</div>
+  </div>
+</div>
+<div class="sec"><div class="sec-t">Identificação do Cliente</div>
+<div class="grid">
+  <div class="f"><div class="lb">Data</div><div class="vl">${formatData(f.dataAtendimento)}</div></div>
+  <div class="f"><div class="lb">CPF</div><div class="vl">${f.cpf||'—'}</div></div>
+  <div class="f s2"><div class="lb">Nome completo</div><div class="vl">${f.nomeCliente||'—'}</div></div>
+  <div class="f"><div class="lb">Celular</div><div class="vl">${f.celular||'—'}</div></div>
+  <div class="f"><div class="lb">E-mail</div><div class="vl">${f.email||'—'}</div></div>
+</div></div>
+<div class="sec"><div class="sec-t">Dados do Imóvel</div>
+<div class="grid">
+  <div class="f s2"><div class="lb">Endereço</div><div class="vl">${f.enderecoImovel||'—'}</div></div>
+  <div class="f"><div class="lb">Bairro</div><div class="vl">${f.bairro||'—'}</div></div>
+  <div class="f"><div class="lb">Cidade / UF</div><div class="vl">${f.cidadeUf||'—'}</div></div>
+  <div class="f"><div class="lb">Uso</div><div class="vl">${f.usoImovel||'—'}</div></div>
+  <div class="f"><div class="lb">Área</div><div class="vl">${f.areaImovel||'—'}</div></div>
+  <div class="f"><div class="lb">Forma de aquisição</div><div class="vl">${f.formaAquisicao||'—'}</div></div>
+  <div class="f"><div class="lb">Tempo de posse</div><div class="vl">${f.tempoPosse||'—'}</div></div>
+</div></div>
+<div class="sec"><div class="sec-t">Aspectos Jurídicos</div>
+<div class="grid3">
+  <div class="f"><div class="lb">Documentos?</div><div class="vl">${f.possuiDocumentos||'—'}</div></div>
+  <div class="f"><div class="lb">Oposição?</div><div class="vl">${f.oposicaoConflito||'—'}</div></div>
+  <div class="f"><div class="lb">Outros ocupantes?</div><div class="vl">${f.outrosOcupantes||'—'}</div></div>
+</div></div>
+<div class="sec"><div class="sec-t">Observações / Descrição Detalhada</div>
+<div class="obs">${f.observacoes||'—'}</div></div>
+<div class="ass">
+  <div class="ac"><div class="al"></div><div class="alb">Assinatura do Cliente</div></div>
+  <div class="ac"><div class="al"></div><div class="alb">Advogado Responsável</div></div>
+  <div class="ac"><div class="al"></div><div class="alb">Data</div></div>
+</div>
+<div class="foot">
+  <span>ID: ${f.id||'—'} · Gerado em ${new Date().toLocaleString('pt-BR')}</span>
+  <strong>Impulsionando Advogados · Leonardo da Silva Oliveira</strong>
+</div>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+  w.document.close();
+};
+
+// ══════════════════════════════════════════════════════════════
+//  MODAIS
+// ══════════════════════════════════════════════════════════════
+window.abrirModal      = function(id){ document.getElementById(id).classList.add('open'); };
+window.fecharModal     = function(id){ document.getElementById(id).classList.remove('open'); };
+window.fecharModalFora = function(e,id){ if(e.target===document.getElementById(id)) fecharModal(id); };
+
+// ══════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════
+let toastTimer;
+window.showToast = function(msg, isErr=false) {
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.toggle('err',isErr);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+};
+
+// ══════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════
+function formatData(s) {
+  if(!s) return '—';
+  const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`;
+}
+
+</script>
+</body>
+</html>
